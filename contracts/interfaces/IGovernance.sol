@@ -14,6 +14,9 @@ interface IGovernance {
     /// @notice An event emitted once the admin is updated
     event AdminUpdated(address indexed previousAdmin, address indexed newAdmin);
 
+    /// @notice An event emitted once the treasury is updated
+    event TreasuryUpdated(address indexed previousTreasury, address indexed newTreasury);
+
     /// @notice Initializes the Governance facet with an initial set of members
     /// @param _members The initial set of members
     /// @param _membersAdmins The initial set of member admins for each member
@@ -23,12 +26,16 @@ interface IGovernance {
     function initGovernance(
         address[] memory _members,
         address[] memory _membersAdmins,
+        address _treasury,
         uint256 _percentage,
         uint256 _precision
     ) external;
 
     /// @return The current admin
     function admin() external view returns (address);
+
+    /// @return The current treasury
+    function treasury() external view returns (address);
 
     /// @return The current percentage for minimum amount of members signatures
     function membersPercentage() external view returns (uint256);
@@ -39,6 +46,10 @@ interface IGovernance {
     /// @notice Updates the admin address
     /// @param _newAdmin The address of the new admin
     function updateAdmin(address _newAdmin) external;
+
+    /// @notice Updates the treasury address
+    /// @param _newTreasury The address of the new treasury
+    function updateTreasury(address _newTreasury) external;
 
     /// @notice Updates the percentage of minimum amount of members signatures required
     /// @param _percentage The new percentage

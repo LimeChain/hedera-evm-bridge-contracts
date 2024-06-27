@@ -24,6 +24,10 @@ library LibFeeCalculator {
         bool initialized;
         // Precision for every calculator's fee percentage.
         uint256 precision;
+        // Precentage for the validator rewards
+        uint256 validatorRewardsPercentage;
+        // Precentage for the treasury rewards
+        uint256 treasuryRewardsPercentage;
         // A mapping consisting of all token fee calculators
         mapping(address => FeeCalculator) nativeTokenFeeCalculators;
     }

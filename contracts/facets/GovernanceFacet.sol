@@ -14,6 +14,7 @@ contract GovernanceFacet is IGovernance {
     function initGovernance(
         address[] memory _members,
         address[] memory _membersAdmins,
+        address _treasury,
         uint256 _percentage,
         uint256 _precision
     ) external override {
@@ -34,6 +35,7 @@ contract GovernanceFacet is IGovernance {
         );
         gs.percentage = _percentage;
         gs.precision = _precision;
+        gs.treasury = _treasury;
         gs.initialized = true;
 
         for (uint256 i = 0; i < _members.length; i++) {
@@ -59,6 +61,11 @@ contract GovernanceFacet is IGovernance {
         return LibGovernance.precision();
     }
 
+    /// @return The current treasury address
+    function treasury() external view override returns (address) {
+        return LibGovernance.treasury();
+    }
+
     /// @notice Updates the admin address
     /// @param _newAdmin The address of the new admin
     function updateAdmin(address _newAdmin) external override {
@@ -67,6 +74,16 @@ contract GovernanceFacet is IGovernance {
         LibGovernance.updateAdmin(_newAdmin);
 
         emit AdminUpdated(previousAdmin, _newAdmin);
+    }
+
+    /// @notice Updates the treasury address
+    /// @param _newTreasury The address of the new treasury
+    function updateTreasury(address _newTreasury) external override {
+        LibDiamond.enforceIsContractOwner();
+        address previousTreasury = LibGovernance.treasury();
+        LibGovernance.updateTreasury(_newTreasury);
+
+        emit TreasuryUpdated(previousTreasury, _newTreasury);
     }
 
     /// @notice Updates the percentage of minimum amount of members signatures required

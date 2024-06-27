@@ -14,7 +14,7 @@ interface IFeeCalculator {
 
     /// @notice Construct a new FeeCalculator contract
     /// @param _precision The precision for every fee calculator
-    function initFeeCalculator(uint256 _precision) external;
+    function initFeeCalculator(uint256 _precision, uint256 _validatorRewardsPercentage,  uint256 __treasuryRewardsPercentage) external;
 
     /// @return The current precision for service fee calculations of tokens
     function serviceFeePrecision() external view returns (uint256);
@@ -50,6 +50,10 @@ interface IFeeCalculator {
         returns (uint256);
 
     /// @notice Sends out the reward accumulated by the member for the specified token
-    /// to the member admin
+    /// to the member admin and treasury
     function claim(address _token, address _member) external;
+
+    /// @notice Sends out the reward accumulated by the members for the specified tokens
+    /// to the members admin and treasury
+    function claimMultiple(address[] calldata _tokens, address[] calldata _members) external;
 }

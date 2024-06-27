@@ -1,4 +1,4 @@
-const { task } = require('hardhat/config');
+const { task, types } = require('hardhat/config');
 
 const ALCHEMY_PROJECT_ID = process.env.ALCHEMY_PROJECT_ID || '';
 const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || 'f39fd6e51aad88f6f4ce6ab8827279cfffb92266';
@@ -18,13 +18,19 @@ task('deploy-router', 'Deploys Router contract will all the necessary facets')
     .addParam('feeCalculatorPrecision', 'The precision of fee calculations for native tokens', 100_000, types.int)
     .addParam('members', 'The addresses of the members')
     .addParam('membersAdmins', 'The addresses of the members\' admins')
+    .addParam('treasury', 'The address of the treasury')
+    .addParam('validatorRewardsPercentage', 'The Validator Reward Precentage Split', 60_000, types.int)
+    .addParam('treasuryRewardsPercentage', 'The Treasury Reward Precentage Split', 40_000, types.int)
     .setAction(async (taskArgs) => {
         const deployRouter = require('./scripts/deploy-router');
         const membersArray = taskArgs.members.split(',');
         const membersAdminsArray = taskArgs.membersAdmins.split(',');
         await deployRouter(
             taskArgs.owner,
+            taskArgs.treasury,
             taskArgs.governancePercentage,
+            taskArgs.validatorRewardsPercentage,
+            taskArgs.treasuryRewardsPercentage,
             taskArgs.governancePrecision,
             taskArgs.feeCalculatorPrecision,
             membersArray,

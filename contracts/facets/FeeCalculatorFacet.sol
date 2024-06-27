@@ -12,7 +12,7 @@ contract FeeCalculatorFacet is IFeeCalculator {
 
     /// @notice Construct a new FeeCalculator contract
     /// @param _precision The precision for every fee calculator
-    function initFeeCalculator(uint256 _precision) external override {
+    function initFeeCalculator(uint256 _precision, uint256 _validatorRewardsPercentage,  uint256 _treasuryRewardsPercentage) external override {
         LibFeeCalculator.Storage storage fcs = LibFeeCalculator
             .feeCalculatorStorage();
         require(!fcs.initialized, "FeeCalculatorFacet: already initialized");
@@ -20,8 +20,14 @@ contract FeeCalculatorFacet is IFeeCalculator {
             _precision >= 10,
             "FeeCalculatorFacet: precision must not be single-digit"
         );
+        require(
+            _validatorRewardsPercentage < _precision && _treasuryRewardsPercentage < _precision,
+            "FeeCalculatorFacet: percentages must be less than precision"
+        );        
         fcs.initialized = true;
         fcs.precision = _precision;
+        fcs.validatorRewardsPercentage = _validatorRewardsPercentage;
+        fcs.treasuryRewardsPercentage = _treasuryRewardsPercentage;
     }
 
     /// @return The current precision for service fee calculations of tokens
@@ -89,17 +95,55 @@ contract FeeCalculatorFacet is IFeeCalculator {
     }
 
     /// @notice Sends out the reward accumulated by the member for the specified token
-    /// to the member admin
+    /// to the member admin and treasury
     function claim(address _token, address _member)
         external
         override
-        onlyMember(_member)
     {
+        _claim(_token,_member);
+    }
+
+    function _claim(address _token, address _member) internal onlyMember(_member) {
         LibGovernance.enforceNotPaused();
+        LibFeeCalculator.Storage storage fcs = LibFeeCalculator
+            .feeCalculatorStorage();
+
+        uint256 validatorRewardsPercentage = fcs.validatorRewardsPercentage;
+        uint256 treasuryRewardsPercentage = fcs.treasuryRewardsPercentage;
+        uint256 precision = fcs.precision;
         uint256 claimableAmount = LibFeeCalculator.claimReward(_member, _token);
         address memberAdmin = LibGovernance.memberAdmin(_member);
-        IERC20(_token).safeTransfer(memberAdmin, claimableAmount);
+        address treasury = LibGovernance.treasury();
+
+        IERC20(_token).safeTransfer(memberAdmin, (claimableAmount * validatorRewardsPercentage) / precision);
+        IERC20(_token).safeTransfer(treasury, (claimableAmount * treasuryRewardsPercentage) / precision);
+
         emit Claim(_member, memberAdmin, _token, claimableAmount);
+    }
+
+
+    /// @notice Sends out the reward accumulated by the members for the specified tokens
+    /// to the members admin and treasury
+    function claimMultiple(address[] calldata _tokens, address[] calldata _members)
+        external
+        override
+    {
+        LibGovernance.enforceNotPaused();
+        uint256 tokensLength = _tokens.length;
+        uint256 membersLength = _members.length;
+
+        for(uint256 x = 0; x < membersLength;){
+            for (uint256 i = 0; i < tokensLength; ) {
+                _claim(_tokens[i], _members[x]);
+                unchecked {
+                    ++i;
+                }
+            }
+
+            unchecked {
+                ++x;
+             }
+        }
     }
 
     /// @notice Accepts only `msg.sender` part of the members
