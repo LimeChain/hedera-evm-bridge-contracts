@@ -12,7 +12,8 @@ contract FeeCalculatorFacet is IFeeCalculator {
 
     /// @notice Construct a new FeeCalculator contract
     /// @param _precision The precision for every fee calculator
-    function initFeeCalculator(uint256 _precision, uint256 _validatorRewardsPercentage,  uint256 _treasuryRewardsPercentage) external override {
+    /// @param _validatorRewardsPercentage The percentage for the validator rewards
+    function initFeeCalculator(uint256 _precision, uint256 _validatorRewardsPercentage) external override {
         LibFeeCalculator.Storage storage fcs = LibFeeCalculator
             .feeCalculatorStorage();
         require(!fcs.initialized, "FeeCalculatorFacet: already initialized");
@@ -21,13 +22,12 @@ contract FeeCalculatorFacet is IFeeCalculator {
             "FeeCalculatorFacet: precision must not be single-digit"
         );
         require(
-            _validatorRewardsPercentage < _precision && _treasuryRewardsPercentage < _precision,
+            _validatorRewardsPercentage < _precision,
             "FeeCalculatorFacet: percentages must be less than precision"
         );        
         fcs.initialized = true;
         fcs.precision = _precision;
         fcs.validatorRewardsPercentage = _validatorRewardsPercentage;
-        fcs.treasuryRewardsPercentage = _treasuryRewardsPercentage;
     }
 
     /// @return The current precision for service fee calculations of tokens
@@ -45,6 +45,17 @@ contract FeeCalculatorFacet is IFeeCalculator {
         LibDiamond.enforceIsContractOwner();
         LibFeeCalculator.setServiceFee(_token, _serviceFeePercentage);
         emit ServiceFeeSet(msg.sender, _token, _serviceFeePercentage);
+    }
+
+    /// @notice updates the validator rewards percentage
+    /// @param _validatorRewardsPercentage The validator rewards percentage
+    function updateValidatorRewardsPercentage(uint256 _validatorRewardsPercentage)
+        external
+        override
+    {
+        LibDiamond.enforceIsContractOwner();
+        LibFeeCalculator.updateValidatorRewardsPercentage(_validatorRewardsPercentage);
+        emit UpdateValidatorRewardsPercentage(msg.sender, _validatorRewardsPercentage);
     }
 
     /// @param _account The address of a validator
@@ -109,14 +120,14 @@ contract FeeCalculatorFacet is IFeeCalculator {
             .feeCalculatorStorage();
 
         uint256 validatorRewardsPercentage = fcs.validatorRewardsPercentage;
-        uint256 treasuryRewardsPercentage = fcs.treasuryRewardsPercentage;
         uint256 precision = fcs.precision;
         uint256 claimableAmount = LibFeeCalculator.claimReward(_member, _token);
         address memberAdmin = LibGovernance.memberAdmin(_member);
         address treasury = LibGovernance.treasury();
+        uint256 validatorClaimableAmount = (claimableAmount * validatorRewardsPercentage) / precision;
 
-        IERC20(_token).safeTransfer(memberAdmin, (claimableAmount * validatorRewardsPercentage) / precision);
-        IERC20(_token).safeTransfer(treasury, (claimableAmount * treasuryRewardsPercentage) / precision);
+        IERC20(_token).safeTransfer(memberAdmin, validatorClaimableAmount);
+        IERC20(_token).safeTransfer(treasury, claimableAmount - validatorClaimableAmount);
 
         emit Claim(_member, memberAdmin, _token, claimableAmount);
     }

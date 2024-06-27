@@ -40,7 +40,12 @@ contract GovernanceV2Facet is IGovernanceV2 {
                 LibFeeCalculator.addNewMember(_account, LibPayment.tokenAt(i));
             }
         } else {
+            LibFeeCalculator.Storage storage fcs = LibFeeCalculator
+                .feeCalculatorStorage();
+            uint256 validatorRewardsPercentage = fcs.validatorRewardsPercentage;
+            uint256 precision = fcs.precision;
             address accountAdmin = LibGovernance.memberAdmin(_account);
+            address governanceTreasury = LibGovernance.treasury();
 
             for (uint256 i = 0; i < LibRouter.nativeTokensCount(); i++) {
                 address token = LibRouter.nativeTokenAt(i);
@@ -48,7 +53,10 @@ contract GovernanceV2Facet is IGovernanceV2 {
                     _account,
                     token
                 );
-                IERC20(token).safeTransfer(accountAdmin, claimableFees);
+                uint256 validatorClaimableAmount = (claimableFees * validatorRewardsPercentage) / precision;
+                
+                IERC20(token).safeTransfer(accountAdmin, validatorClaimableAmount);
+                IERC20(token).safeTransfer(governanceTreasury, claimableFees - validatorClaimableAmount);
             }
 
             for (uint256 i = 0; i < LibPayment.tokensCount(); i++) {
@@ -57,7 +65,10 @@ contract GovernanceV2Facet is IGovernanceV2 {
                     _account,
                     token
                 );
-                IERC20(token).safeTransfer(accountAdmin, claimableFees);
+                uint256 validatorClaimableAmount = (claimableFees * validatorRewardsPercentage) / precision;
+
+                IERC20(token).safeTransfer(accountAdmin, validatorClaimableAmount);
+                IERC20(token).safeTransfer(governanceTreasury, claimableFees - validatorClaimableAmount);
             }
 
             _accountAdmin = address(0);

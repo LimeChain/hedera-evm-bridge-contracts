@@ -12,9 +12,12 @@ interface IFeeCalculator {
         uint256 amount
     );
 
+    /// @notice An event emitted once the validator rewards percentage is modified
+    event UpdateValidatorRewardsPercentage(address account, uint256 _validatorRewardsPercentage);
+
     /// @notice Construct a new FeeCalculator contract
     /// @param _precision The precision for every fee calculator
-    function initFeeCalculator(uint256 _precision, uint256 _validatorRewardsPercentage,  uint256 __treasuryRewardsPercentage) external;
+    function initFeeCalculator(uint256 _precision, uint256 _validatorRewardsPercentage) external;
 
     /// @return The current precision for service fee calculations of tokens
     function serviceFeePrecision() external view returns (uint256);
@@ -56,4 +59,8 @@ interface IFeeCalculator {
     /// @notice Sends out the reward accumulated by the members for the specified tokens
     /// to the members admin and treasury
     function claimMultiple(address[] calldata _tokens, address[] calldata _members) external;
+
+    /// @notice updates the validator rewards percentage
+    ///  @param _validatorRewardsPercentage The validator rewards percentage
+    function updateValidatorRewardsPercentage(uint256 _validatorRewardsPercentage) external;
 }

@@ -20,7 +20,6 @@ task('deploy-router', 'Deploys Router contract will all the necessary facets')
     .addParam('membersAdmins', 'The addresses of the members\' admins')
     .addParam('treasury', 'The address of the treasury')
     .addParam('validatorRewardsPercentage', 'The Validator Reward Precentage Split', 60_000, types.int)
-    .addParam('treasuryRewardsPercentage', 'The Treasury Reward Precentage Split', 40_000, types.int)
     .setAction(async (taskArgs) => {
         const deployRouter = require('./scripts/deploy-router');
         const membersArray = taskArgs.members.split(',');
@@ -30,7 +29,6 @@ task('deploy-router', 'Deploys Router contract will all the necessary facets')
             taskArgs.treasury,
             taskArgs.governancePercentage,
             taskArgs.validatorRewardsPercentage,
-            taskArgs.treasuryRewardsPercentage,
             taskArgs.governancePrecision,
             taskArgs.feeCalculatorPrecision,
             membersArray,
@@ -281,6 +279,8 @@ task('updateFacet', 'Deploys ERC721PortalFacet')
     .addParam("facetName", "The addres of the router")
     .addParam("facetAddress", "The addres of the router")
     .addParam("routerAddress", "The addres of the router")
+    .addParam("actions", "The diamond cut action(Add=0, Replace=1, Remove=2)", 0, types.int)
+    .addParam("functionSignatures", "The function signatures divided by coma")
     .setAction(async (taskArgs) => {
         console.log(taskArgs);
         const updateFacet = require('./scripts/update-facet');

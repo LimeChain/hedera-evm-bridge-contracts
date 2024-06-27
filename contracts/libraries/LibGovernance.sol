@@ -20,10 +20,10 @@ library LibGovernance {
         uint256 percentage;
         // Admin of the contract
         address admin;
-        // Treasury of the contract
-        address treasury;
         // used to restrict certain functionality in case of an emergency stop
         bool paused;
+        // Treasury of the contract
+        address treasury;
     }
 
     function governanceStorage() internal pure returns (Storage storage gs) {

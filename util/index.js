@@ -22,6 +22,16 @@ function getSelectors(contract) {
   }, []);
 }
 
+function getSelector(contract, functionSignature) {
+  const signature = functionSignature;
+  
+  if (signature !== 'init(bytes)') {
+    return contract.interface.getSighash(signature);
+  }
+
+  return undefined;
+}
+
 async function createPermit(owner, spenderAddress, amount, deadline, tokenContract) {
   const Permit = [
     { name: 'owner', type: 'address' },
@@ -62,5 +72,6 @@ module.exports = {
   createPermit,
   diamondAsFacet,
   getInterfaceId,
-  getSelectors
+  getSelectors,
+  getSelector
 };

@@ -5,7 +5,7 @@ const { getSelectors } = require('../util');
 
 const { performUpgradeErc721Support } = require('./upgrade-erc721-support');
 
-async function deployRouter(owner,treasury, governancePercentage,validatorRewardsPercentage,treasuryRewardsPercentage, governancePrecision, feeCalculatorPrecision, members, membersAdmins) {
+async function deployRouter(owner,treasury, governancePercentage,validatorRewardsPercentage, governancePrecision, feeCalculatorPrecision, members, membersAdmins) {
   await hardhat.run('compile');
 
   const routerFacetFactory = await ethers.getContractFactory('RouterFacet');
@@ -77,7 +77,7 @@ async function deployRouter(owner,treasury, governancePercentage,validatorReward
   const initRouterTx = await (await router.initRouter());
   await initRouterTx.wait();
   console.log(`Initializing Fee Calculator with precision [${feeCalculatorPrecision}], please wait...`);
-  const initFeeCalculatorTx = await (await router.initFeeCalculator(feeCalculatorPrecision, validatorRewardsPercentage, treasuryRewardsPercentage));
+  const initFeeCalculatorTx = await (await router.initFeeCalculator(feeCalculatorPrecision, validatorRewardsPercentage));
   await initFeeCalculatorTx.wait();
 
   console.log('Router address: ', diamond.address);
