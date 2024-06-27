@@ -549,6 +549,30 @@ describe('Router', async () => {
         await expect(router.connect(nonMember).setServiceFee(bob.address, FEE_CALCULATOR_TOKEN_SERVICE_FEE)).to.be.revertedWith(expectedRevertMessage);
       });
     });
+
+    describe('updateValidatorRewardsPercentage', async () => {
+      it('should successfully update validator rewards percentage', async () => {
+        await router.updateValidatorRewardsPercentage(60000);
+        const percentage = await router.validatorRewardsPercentage();
+        expect(percentage).to.equal(60000);
+      });
+
+      it('should emit event with args', async () => {
+        await expect(router.updateValidatorRewardsPercentage(60000))
+          .to.emit(router, 'UpdateValidatorRewardsPercentage')
+          .withArgs(owner.address, 60000);
+      });
+
+      it('should revert if not called from owner', async () => {
+        const expectedRevertMessage = 'LibDiamond: Must be contract owner';
+        await expect(router.connect(nonMember).updateValidatorRewardsPercentage(60000)).to.be.revertedWith(expectedRevertMessage);
+      });
+
+      it('should revert when trying to set rewards percentage equal to precision', async () => {
+        const expectedRevertMessage = 'LibFeeCalculator: validator rewards percentage percentage exceeds or equal to precision';
+        await expect(router.updateValidatorRewardsPercentage(FEE_CALCULATOR_PRECISION)).to.be.revertedWith(expectedRevertMessage);
+      });
+    });
   });
 
   describe('OwnershipFacet', async () => {

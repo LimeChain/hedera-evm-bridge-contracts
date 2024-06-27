@@ -58,6 +58,11 @@ contract FeeCalculatorFacet is IFeeCalculator {
         emit UpdateValidatorRewardsPercentage(msg.sender, _validatorRewardsPercentage);
     }
 
+    /// @notice The current validator rewards percentage
+    function validatorRewardsPercentage() external view override returns (uint256) {
+        return LibFeeCalculator.validatorRewardsPercentage();
+    }
+
     /// @param _account The address of a validator
     /// @param _token The token address
     /// @return The total amount of claimed tokens by the provided validator address
@@ -119,12 +124,10 @@ contract FeeCalculatorFacet is IFeeCalculator {
         LibFeeCalculator.Storage storage fcs = LibFeeCalculator
             .feeCalculatorStorage();
 
-        uint256 validatorRewardsPercentage = fcs.validatorRewardsPercentage;
-        uint256 precision = fcs.precision;
         uint256 claimableAmount = LibFeeCalculator.claimReward(_member, _token);
         address memberAdmin = LibGovernance.memberAdmin(_member);
         address treasury = LibGovernance.treasury();
-        uint256 validatorClaimableAmount = (claimableAmount * validatorRewardsPercentage) / precision;
+        uint256 validatorClaimableAmount = (claimableAmount * fcs.validatorRewardsPercentage) / fcs.precision;
 
         IERC20(_token).safeTransfer(memberAdmin, validatorClaimableAmount);
         IERC20(_token).safeTransfer(treasury, claimableAmount - validatorClaimableAmount);

@@ -121,6 +121,12 @@ library LibFeeCalculator {
         fcs.validatorRewardsPercentage = _validatorRewardsPercentage;
     }
 
+    /// @notice The current validator rewards percentage
+    function validatorRewardsPercentage() internal view returns (uint256) {
+        LibFeeCalculator.Storage storage fcs = feeCalculatorStorage();
+        return fcs.validatorRewardsPercentage;
+    }
+
     /// @notice Accrues fees to a fee calculator
     /// @param _fc The fee calculator
     /// @return The updated accumulator

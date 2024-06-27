@@ -63,4 +63,7 @@ interface IFeeCalculator {
     /// @notice updates the validator rewards percentage
     ///  @param _validatorRewardsPercentage The validator rewards percentage
     function updateValidatorRewardsPercentage(uint256 _validatorRewardsPercentage) external;
+
+    /// @notice The current validator rewards percentage
+    function validatorRewardsPercentage() external view returns (uint256);
 }

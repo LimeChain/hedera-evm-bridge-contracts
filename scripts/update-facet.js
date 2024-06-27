@@ -4,14 +4,14 @@ const { getSelector } = require("../util");
 
 async function updateFacet(facetName, facetAddress, routerAddress, action, functionSignatures) {
   const facetContract = await ethers.getContractAt(facetName, facetAddress);
-  let signatures = functionSignatures.split(',');
-
+  const signatures = functionSignatures.split(',');
+  const selectors = signatures.map(signature => getSelector(signature)).filter(value => value !== undefined);
 
   const diamondAddCutReplace = [
     {
       facetAddress: facetContract.address,
-      action, // Replace
-      functionSelectors: signatures.map(signature => getSelector(signature)),
+      action, // Action
+      functionSelectors: selectors,
     },
   ];
 
