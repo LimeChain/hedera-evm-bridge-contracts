@@ -115,7 +115,7 @@ library LibFeeCalculator {
         LibFeeCalculator.Storage storage fcs = feeCalculatorStorage();
         require(
             _treasuryPercentage < fcs.precision,
-            "LibFeeCalculator: validator rewards percentage percentage exceeds or equal to precision"
+            "LibFeeCalculator: treasury rewards percentage percentage exceeds or equal to precision"
         );
 
         fcs.treasuryPercentage = _treasuryPercentage;

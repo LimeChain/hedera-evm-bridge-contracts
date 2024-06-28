@@ -561,7 +561,7 @@ describe('Router', async () => {
       });
 
       it('should revert when trying to set rewards percentage equal to precision', async () => {
-        const expectedRevertMessage = 'LibFeeCalculator: validator rewards percentage percentage exceeds or equal to precision';
+        const expectedRevertMessage = 'LibFeeCalculator: treasury rewards percentage percentage exceeds or equal to precision';
         await expect(router.setTreasuryPercentage(FEE_CALCULATOR_PRECISION)).to.be.revertedWith(expectedRevertMessage);
       });
     });
