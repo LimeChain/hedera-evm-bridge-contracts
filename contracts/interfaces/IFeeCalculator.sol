@@ -62,7 +62,7 @@ interface IFeeCalculator {
     /// to the treasury.
     function claimMultiple(address[] calldata _tokens, address[] calldata _members) external;
 
-    /// @notice updates the treasury rewards percentage
+    /// @notice Updates the treasury rewards percentage
     ///  @param _treasuryPercentage The treasury rewards percentage
     function setTreasuryPercentage(uint256 _treasuryPercentage) external;
 

@@ -41,7 +41,7 @@ contract FeeCalculatorFacet is IFeeCalculator {
         emit ServiceFeeSet(msg.sender, _token, _serviceFeePercentage);
     }
 
-    /// @notice updates the treasury rewards percentage
+    /// @notice Updates the treasury rewards percentage
     /// @param _treasuryPercentage The treasury rewards percentage
     function setTreasuryPercentage(uint256 _treasuryPercentage)
         external
