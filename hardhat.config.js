@@ -19,7 +19,6 @@ task('deploy-router', 'Deploys Router contract will all the necessary facets')
     .addParam('members', 'The addresses of the members')
     .addParam('membersAdmins', 'The addresses of the members\' admins')
     .addParam('treasury', 'The address of the treasury')
-    .addParam('validatorRewardsPercentage', 'The Validator Reward Precentage Split', 60_000, types.int)
     .setAction(async (taskArgs) => {
         const deployRouter = require('./scripts/deploy-router');
         const membersArray = taskArgs.members.split(',');
@@ -28,7 +27,6 @@ task('deploy-router', 'Deploys Router contract will all the necessary facets')
             taskArgs.owner,
             taskArgs.treasury,
             taskArgs.governancePercentage,
-            taskArgs.validatorRewardsPercentage,
             taskArgs.governancePrecision,
             taskArgs.feeCalculatorPrecision,
             membersArray,

@@ -29,7 +29,7 @@ describe('Router', async () => {
   const chainId = network.config.chainId;
   const GOVERNANCE_PRECISION = 100;
   const GOVERNANCE_PERCENTAGE = 50;
-  const VALIDATOR_REWARDS_PERCENTAGE = 40_000;
+  const TREASURY_REWARDS_PERCENTAGE = 60_000;
 
   const FEE_CALCULATOR_TOKEN_SERVICE_FEE = 10_000;
   const FEE_CALCULATOR_PRECISION = 100_000;
@@ -100,7 +100,7 @@ describe('Router', async () => {
     await router.initGovernance([alice.address], [aliceAdmin.address], treasury.address, GOVERNANCE_PERCENTAGE, GOVERNANCE_PRECISION);
 
     await router.initRouter();
-    await router.initFeeCalculator(FEE_CALCULATOR_PRECISION, VALIDATOR_REWARDS_PERCENTAGE);
+    await router.initFeeCalculator(FEE_CALCULATOR_PRECISION);
   });
 
   beforeEach(async function () {
@@ -245,15 +245,7 @@ describe('Router', async () => {
 
     it('should not initialize FeeCalculatorFacet twice', async () => {
       const expectedRevertMessage = 'FeeCalculatorFacet: already initialized';
-      await expect(router.initFeeCalculator(FEE_CALCULATOR_PRECISION, VALIDATOR_REWARDS_PERCENTAGE)).to.be.revertedWith(expectedRevertMessage);
-    });
-
-    it('should revert FeeCalculatorFacet init if rewards percentage not set correctly', async () => {
-      const expectedRevertMessage = 'FeeCalculatorFacet: percentages must be less than precision';
-      const feeCalculatorFacetFactory = await ethers.getContractFactory('FeeCalculatorFacet');
-      const testFacet = await feeCalculatorFacetFactory.deploy();
-      await testFacet.deployed();
-      await expect(testFacet.initFeeCalculator(10, 30)).to.be.revertedWith(expectedRevertMessage);
+      await expect(router.initFeeCalculator(FEE_CALCULATOR_PRECISION)).to.be.revertedWith(expectedRevertMessage);
     });
 
     it('should revert governance init if precision is below 10', async () => {
@@ -261,8 +253,8 @@ describe('Router', async () => {
       const feeCalculatorFacetFactory = await ethers.getContractFactory('FeeCalculatorFacet');
       const testFacet = await feeCalculatorFacetFactory.deploy();
       await testFacet.deployed();
-      await expect(testFacet.initFeeCalculator(0, VALIDATOR_REWARDS_PERCENTAGE)).to.be.revertedWith(expectedRevertMessage);
-      await expect(testFacet.initFeeCalculator(9, VALIDATOR_REWARDS_PERCENTAGE)).to.be.revertedWith(expectedRevertMessage);
+      await expect(testFacet.initFeeCalculator(0)).to.be.revertedWith(expectedRevertMessage);
+      await expect(testFacet.initFeeCalculator(9)).to.be.revertedWith(expectedRevertMessage);
     });
   });
 
@@ -550,27 +542,27 @@ describe('Router', async () => {
       });
     });
 
-    describe('updateValidatorRewardsPercentage', async () => {
-      it('should successfully update validator rewards percentage', async () => {
-        await router.updateValidatorRewardsPercentage(60000);
-        const percentage = await router.validatorRewardsPercentage();
+    describe('setTreasuryPercentage', async () => {
+      it('should successfully update treasury rewards percentage', async () => {
+        await router.setTreasuryPercentage(60000);
+        const percentage = await router.treasuryPercentage();
         expect(percentage).to.equal(60000);
       });
 
       it('should emit event with args', async () => {
-        await expect(router.updateValidatorRewardsPercentage(60000))
-          .to.emit(router, 'UpdateValidatorRewardsPercentage')
+        await expect(router.setTreasuryPercentage(60000))
+          .to.emit(router, 'TreasuryPercentageSet')
           .withArgs(owner.address, 60000);
       });
 
       it('should revert if not called from owner', async () => {
         const expectedRevertMessage = 'LibDiamond: Must be contract owner';
-        await expect(router.connect(nonMember).updateValidatorRewardsPercentage(60000)).to.be.revertedWith(expectedRevertMessage);
+        await expect(router.connect(nonMember).setTreasuryPercentage(60000)).to.be.revertedWith(expectedRevertMessage);
       });
 
       it('should revert when trying to set rewards percentage equal to precision', async () => {
         const expectedRevertMessage = 'LibFeeCalculator: validator rewards percentage percentage exceeds or equal to precision';
-        await expect(router.updateValidatorRewardsPercentage(FEE_CALCULATOR_PRECISION)).to.be.revertedWith(expectedRevertMessage);
+        await expect(router.setTreasuryPercentage(FEE_CALCULATOR_PRECISION)).to.be.revertedWith(expectedRevertMessage);
       });
     });
   });
@@ -1332,10 +1324,11 @@ describe('Router', async () => {
 
       await nativeToken.connect(nonMember).approve(router.address, amount);
       await router.connect(nonMember).lock(1, nativeToken.address, amount, owner.address);
-
+      await router.setTreasuryPercentage(TREASURY_REWARDS_PERCENTAGE);
+      
       serviceFee = amount.mul(FEE_CALCULATOR_TOKEN_SERVICE_FEE).div(FEE_CALCULATOR_PRECISION);
-      expectedMemberFeeRewardAfterClaim = serviceFee.div(3).mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION);
-      expectedTreasuryFeeRewardAfterClaim = serviceFee.div(3).sub(expectedMemberFeeRewardAfterClaim);
+      expectedTreasuryFeeRewardAfterClaim = serviceFee.div(3).mul(TREASURY_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION);
+      expectedMemberFeeRewardAfterClaim = serviceFee.div(3).sub(expectedTreasuryFeeRewardAfterClaim);
       expectedPrevAccruedAfterClaim = serviceFee.div(3).mul(3);
     });
 
@@ -1356,7 +1349,7 @@ describe('Router', async () => {
 
       expect(aliceAdminBalance)
         .to.equal(expectedMemberFeeRewardAfterClaim)
-        .to.equal(aliceClaimedRewards.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION));
+        .to.equal(aliceClaimedRewards.sub(expectedTreasuryFeeRewardAfterClaim));
 
       expect(bobAdminBalance)
         .to.equal(0)
@@ -1396,8 +1389,8 @@ describe('Router', async () => {
       await router.connect(nonMember).lock(1, nativeToken.address, amount, owner.address);
 
       serviceFee = serviceFee.mul(2);
-      expectedMemberFeeRewardAfterClaim = serviceFee.div(3).mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION);
-      expectedTreasuryFeeRewardAfterClaim = serviceFee.div(3).sub(expectedMemberFeeRewardAfterClaim);
+      expectedTreasuryFeeRewardAfterClaim = serviceFee.div(3).mul(TREASURY_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION);
+      expectedMemberFeeRewardAfterClaim = serviceFee.div(3).sub(expectedTreasuryFeeRewardAfterClaim);
       expectedPrevAccruedAfterClaim = serviceFee.div(3).mul(3);
 
       // when
@@ -1412,22 +1405,21 @@ describe('Router', async () => {
       const routerBalance = await nativeToken.balanceOf(router.address);
       const treasuryBalance = await nativeToken.balanceOf(treasury.address);
 
-      //11999999999999999997
       const aliceClaimedRewards = await router.claimedRewardsPerAccount(alice.address, nativeToken.address);
       const bobClaimedRewards = await router.claimedRewardsPerAccount(bob.address, nativeToken.address);
       const carolClaimedRewards = await router.claimedRewardsPerAccount(carol.address, nativeToken.address);
 
       expect(aliceAdminBalance)
         .to.equal(expectedMemberFeeRewardAfterClaim)
-        .to.equal(aliceClaimedRewards.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION));
+        .to.equal(aliceClaimedRewards.sub(expectedTreasuryFeeRewardAfterClaim));
       
         expect(bobAdminBalance)
         .to.equal(expectedMemberFeeRewardAfterClaim)
-        .to.equal(bobClaimedRewards.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION));
+        .to.equal(bobClaimedRewards.sub(expectedTreasuryFeeRewardAfterClaim));
 
       expect(caroAdminlBalance)
         .to.equal(expectedMemberFeeRewardAfterClaim)
-        .to.equal(carolClaimedRewards.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION));
+        .to.equal(carolClaimedRewards.sub(expectedTreasuryFeeRewardAfterClaim));
       
       expect(routerBalance)
         .to.equal(amount.mul(2).sub(expectedMemberFeeRewardAfterClaim.mul(3).add(expectedTreasuryFeeRewardAfterClaim.mul(3))));
@@ -1461,8 +1453,8 @@ describe('Router', async () => {
 
       const totalLockedAmount = amount.add(secondAmount);
       serviceFee = totalLockedAmount.mul(FEE_CALCULATOR_TOKEN_SERVICE_FEE).div(FEE_CALCULATOR_PRECISION);
-      expectedMemberFeeRewardAfterClaim = serviceFee.div(3).mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION);
-      expectedTreasuryFeeRewardAfterClaim = serviceFee.div(3).sub(expectedMemberFeeRewardAfterClaim);
+      expectedTreasuryFeeRewardAfterClaim = serviceFee.div(3).mul(TREASURY_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION);
+      expectedMemberFeeRewardAfterClaim = serviceFee.div(3).sub(expectedTreasuryFeeRewardAfterClaim);
       expectedPrevAccruedAfterClaim = serviceFee.div(3).mul(3);
 
       // when
@@ -1483,13 +1475,13 @@ describe('Router', async () => {
 
       expect(aliceAdminBalance)
         .to.equal(expectedMemberFeeRewardAfterClaim)
-        .to.equal(aliceClaimedRewards.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION));
+        .to.equal(aliceClaimedRewards.sub(expectedTreasuryFeeRewardAfterClaim));
       expect(bobAdminBalance)
         .to.equal(expectedMemberFeeRewardAfterClaim)
-        .to.equal(bobClaimedRewards.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION));
+        .to.equal(bobClaimedRewards.sub(expectedTreasuryFeeRewardAfterClaim));
       expect(carolAdminBalance)
         .to.equal(expectedMemberFeeRewardAfterClaim)
-        .to.equal(carolClaimedRewards.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION));
+        .to.equal(carolClaimedRewards.sub(expectedTreasuryFeeRewardAfterClaim));
       
         expect(routerBalance)
         .to.equal(totalLockedAmount.sub(expectedMemberFeeRewardAfterClaim.mul(3).add(expectedTreasuryFeeRewardAfterClaim.mul(3))));
@@ -1508,14 +1500,14 @@ describe('Router', async () => {
 
     it('should emit event with args', async () => {
       const claimAmount = serviceFee.div(3);
-      const validatorClaimAmout = claimAmount.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION);
+      const treasuryClaimAmout = claimAmount.mul(TREASURY_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION);
       await expect(router.claim(nativeToken.address, alice.address))
         .to.emit(router, 'Claim')
         .withArgs(alice.address, aliceAdmin.address, nativeToken.address, claimAmount)
         .to.emit(nativeToken, 'Transfer')
-        .withArgs(router.address, aliceAdmin.address, claimAmount.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION))
+        .withArgs(router.address, aliceAdmin.address, claimAmount.sub(treasuryClaimAmout))
         .to.emit(nativeToken, 'Transfer')
-        .withArgs(router.address, treasury.address, claimAmount.sub(validatorClaimAmout));
+        .withArgs(router.address, treasury.address, treasuryClaimAmout);
     });
 
     it('should revert when claimed address is not a member', async () => {
@@ -1567,6 +1559,8 @@ describe('Router', async () => {
     beforeEach(async () => {
       anotherNativeToken = await nativeTokenFactory.deploy('OtherNativeToken', 'NT', 18);
       await anotherNativeToken.deployed();
+
+      await router.setTreasuryPercentage(TREASURY_REWARDS_PERCENTAGE);
       
       await anotherNativeToken.mint(nonMember.address, amount);
       await nativeToken.mint(nonMember.address, amount);
@@ -1584,8 +1578,8 @@ describe('Router', async () => {
       await router.connect(nonMember).lock(1, anotherNativeToken.address, amount, owner.address);
 
       serviceFee = amount.mul(FEE_CALCULATOR_TOKEN_SERVICE_FEE).div(FEE_CALCULATOR_PRECISION);
-      expectedMemberFeeRewardAfterClaim = serviceFee.div(3).mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION);
-      expectedTreasuryFeeRewardAfterClaim = serviceFee.div(3).sub(expectedMemberFeeRewardAfterClaim);
+      expectedTreasuryFeeRewardAfterClaim = serviceFee.div(3).mul(TREASURY_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION);
+      expectedMemberFeeRewardAfterClaim = serviceFee.div(3).sub(expectedTreasuryFeeRewardAfterClaim);
       expectedPrevAccruedAfterClaim = serviceFee.div(3).mul(3);
     });
 
@@ -1600,8 +1594,8 @@ describe('Router', async () => {
       await router.connect(nonMember).lock(1, anotherNativeToken.address, amount, owner.address);
 
       serviceFee = serviceFee.mul(2);
-      expectedMemberFeeRewardAfterClaim = serviceFee.div(3).mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION);
-      expectedTreasuryFeeRewardAfterClaim = serviceFee.div(3).sub(expectedMemberFeeRewardAfterClaim);
+      expectedTreasuryFeeRewardAfterClaim = serviceFee.div(3).mul(TREASURY_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION);
+      expectedMemberFeeRewardAfterClaim = serviceFee.div(3).sub(expectedTreasuryFeeRewardAfterClaim);
       expectedPrevAccruedAfterClaim = serviceFee.div(3).mul(3);
 
       // when
@@ -1619,15 +1613,15 @@ describe('Router', async () => {
 
       expect(aliceAdminBalance)
         .to.equal(expectedMemberFeeRewardAfterClaim)
-        .to.equal(aliceClaimedRewards.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION));
+        .to.equal(aliceClaimedRewards.sub(expectedTreasuryFeeRewardAfterClaim));
       
         expect(bobAdminBalance)
         .to.equal(expectedMemberFeeRewardAfterClaim)
-        .to.equal(bobClaimedRewards.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION));
+        .to.equal(bobClaimedRewards.sub(expectedTreasuryFeeRewardAfterClaim));
 
       expect(caroAdminlBalance)
         .to.equal(expectedMemberFeeRewardAfterClaim)
-        .to.equal(carolClaimedRewards.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION));
+        .to.equal(carolClaimedRewards.sub(expectedTreasuryFeeRewardAfterClaim));
       
       expect(routerBalance)
         .to.equal(amount.mul(2).sub(expectedMemberFeeRewardAfterClaim.mul(3).add(expectedTreasuryFeeRewardAfterClaim.mul(3))));
@@ -1661,15 +1655,15 @@ describe('Router', async () => {
 
       expect(aliceAdminBalanceForOtherToken)
       .to.equal(expectedMemberFeeRewardAfterClaim)
-      .to.equal(aliceClaimedRewardsForOtherToken.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION));
+      .to.equal(aliceClaimedRewardsForOtherToken.sub(expectedTreasuryFeeRewardAfterClaim));
     
       expect(bobAdminBalanceForOtherToken)
       .to.equal(expectedMemberFeeRewardAfterClaim)
-      .to.equal(bobClaimedRewardsForOtherToken.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION));
+      .to.equal(bobClaimedRewardsForOtherToken.sub(expectedTreasuryFeeRewardAfterClaim));
 
     expect(caroAdminlBalanceForOtherToken)
       .to.equal(expectedMemberFeeRewardAfterClaim)
-      .to.equal(carolClaimedRewardsForOtherToken.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION));
+      .to.equal(carolClaimedRewardsForOtherToken.sub(expectedTreasuryFeeRewardAfterClaim));
     
     expect(routerBalanceForOtherToken)
       .to.equal(amount.mul(2).sub(expectedMemberFeeRewardAfterClaim.mul(3).add(expectedTreasuryFeeRewardAfterClaim.mul(3))));
@@ -1858,6 +1852,7 @@ describe('Router', async () => {
           action: 1, // Replace
           functionSelectors: getSelectors(governanceV2Facet),
         }];
+        await router.setTreasuryPercentage(TREASURY_REWARDS_PERCENTAGE);
 
         await router.diamondCut(diamondReplaceCut, ethers.constants.AddressZero, "0x");
       });
@@ -2030,6 +2025,7 @@ describe('Router', async () => {
           expect(beforeMemberUpdateTokenFeeData.accumulator).to.equal(0);
           expect(beforeMemberUpdateTokenFeeData.previousAccrued).to.equal(0);
 
+          const expectedTreasuryRewards = rewardPerMember.mul(TREASURY_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION);
           // when
           await expect(
             router.updateMember(alice.address, aliceAdmin.address, false))
@@ -2038,9 +2034,9 @@ describe('Router', async () => {
             .to.emit(router, 'MemberAdminUpdated')
             .withArgs(alice.address, ethers.constants.AddressZero)
             .to.emit(nativeToken, 'Transfer')
-            .withArgs(router.address, aliceAdmin.address, rewardPerMember.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION))
+            .withArgs(router.address, aliceAdmin.address, rewardPerMember.sub(expectedTreasuryRewards))
             .to.emit(nativeToken, 'Transfer')
-            .withArgs(router.address, treasury.address, serviceFee.div(2).sub(rewardPerMember.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION)));
+            .withArgs(router.address, treasury.address, expectedTreasuryRewards);
 
           const afterMemberUpdateTokenFeeData = await router.tokenFeeData(nativeToken.address);
           expect(afterMemberUpdateTokenFeeData.feesAccrued).to.equal(serviceFee);
@@ -2188,6 +2184,7 @@ describe('Router', async () => {
             expect(beforeMemberUpdateTokenFeeData.accumulator).to.equal(0);
             expect(beforeMemberUpdateTokenFeeData.previousAccrued).to.equal(0);
 
+            const expectedTreasuryRewards = rewardPerMember.mul(TREASURY_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION);
             // when
             await expect(
               router.updateMember(alice.address, aliceAdmin.address, false))
@@ -2196,9 +2193,9 @@ describe('Router', async () => {
               .to.emit(router, 'MemberAdminUpdated')
               .withArgs(alice.address, ethers.constants.AddressZero)
               .to.emit(nativeToken, 'Transfer')
-              .withArgs(router.address, aliceAdmin.address, rewardPerMember.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION))
+              .withArgs(router.address, aliceAdmin.address, rewardPerMember.sub(expectedTreasuryRewards))
               .to.emit(nativeToken, 'Transfer')
-              .withArgs(router.address, treasury.address, rewardPerMember.sub(rewardPerMember.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION)))
+              .withArgs(router.address, treasury.address, expectedTreasuryRewards)
               .to.emit(nativeToken, 'Transfer')
               .withArgs(router.address, aliceAdmin.address, 0)
               .to.emit(nativeToken, 'Transfer')
@@ -2335,6 +2332,7 @@ describe('Router', async () => {
             expect(beforeMemberUpdatePaymentTokenFeeData.accumulator).to.equal(0);
             expect(beforeMemberUpdatePaymentTokenFeeData.previousAccrued).to.equal(0);
 
+
             // when
             await expect(
               router.updateMember(alice.address, aliceAdmin.address, false))
@@ -2343,13 +2341,13 @@ describe('Router', async () => {
               .to.emit(router, 'MemberAdminUpdated')
               .withArgs(alice.address, ethers.constants.AddressZero)
               .to.emit(nativeToken, 'Transfer')
-              .withArgs(router.address, aliceAdmin.address, serviceFeeRewardPerMember.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION))
+              .withArgs(router.address, aliceAdmin.address, serviceFeeRewardPerMember.sub(serviceFeeRewardPerMember.mul(TREASURY_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION)))
               .to.emit(paymentToken, 'Transfer')
-              .withArgs(router.address, aliceAdmin.address, paymentTokenRewardPerMember.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION))
+              .withArgs(router.address, aliceAdmin.address, paymentTokenRewardPerMember.sub(paymentTokenRewardPerMember.mul(TREASURY_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION)))
               .to.emit(nativeToken, 'Transfer')
-              .withArgs(router.address, treasury.address, serviceFeeRewardPerMember.sub(serviceFeeRewardPerMember.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION)))
+              .withArgs(router.address, treasury.address, serviceFeeRewardPerMember.mul(TREASURY_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION))
               .to.emit(paymentToken, 'Transfer')
-              .withArgs(router.address, treasury.address, paymentTokenRewardPerMember.sub(paymentTokenRewardPerMember.mul(VALIDATOR_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION)));
+              .withArgs(router.address, treasury.address, paymentTokenRewardPerMember.mul(TREASURY_REWARDS_PERCENTAGE).div(FEE_CALCULATOR_PRECISION));
 
             const afterMemberUpdateNativeTokenFeeData = await router.tokenFeeData(nativeToken.address);
             expect(afterMemberUpdateNativeTokenFeeData.feesAccrued).to.equal(serviceFee);

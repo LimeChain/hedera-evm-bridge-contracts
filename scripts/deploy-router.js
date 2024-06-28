@@ -5,7 +5,7 @@ const { getSelectors } = require('../util');
 
 const { performUpgradeErc721Support } = require('./upgrade-erc721-support');
 
-async function deployRouter(owner,treasury, governancePercentage,validatorRewardsPercentage, governancePrecision, feeCalculatorPrecision, members, membersAdmins) {
+async function deployRouter(owner, treasury, governancePercentage, governancePrecision, feeCalculatorPrecision, members, membersAdmins) {
   await hardhat.run('compile');
 
   const routerFacetFactory = await ethers.getContractFactory('RouterFacet');
@@ -70,14 +70,14 @@ async function deployRouter(owner,treasury, governancePercentage,validatorReward
               membersAdmins [${membersAdmins}],
               percentage [${governancePercentage}] and
               precision [${governancePrecision}], please wait...`);
-  const initGovernanceTx = await (await router.initGovernance(members, membersAdmins,treasury, governancePercentage, governancePrecision));
+  const initGovernanceTx = await (await router.initGovernance(members, membersAdmins, treasury, governancePercentage, governancePrecision));
   await initGovernanceTx.wait();
 
   console.log(`Initializing Router, please wait...`);
   const initRouterTx = await (await router.initRouter());
   await initRouterTx.wait();
   console.log(`Initializing Fee Calculator with precision [${feeCalculatorPrecision}], please wait...`);
-  const initFeeCalculatorTx = await (await router.initFeeCalculator(feeCalculatorPrecision, validatorRewardsPercentage));
+  const initFeeCalculatorTx = await (await router.initFeeCalculator(feeCalculatorPrecision));
   await initFeeCalculatorTx.wait();
 
   console.log('Router address: ', diamond.address);

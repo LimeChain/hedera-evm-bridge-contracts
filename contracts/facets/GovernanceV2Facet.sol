@@ -42,10 +42,9 @@ contract GovernanceV2Facet is IGovernanceV2 {
         } else {
             LibFeeCalculator.Storage storage fcs = LibFeeCalculator
                 .feeCalculatorStorage();
-            uint256 validatorRewardsPercentage = fcs.validatorRewardsPercentage;
-            uint256 precision = fcs.precision;
+  
             address accountAdmin = LibGovernance.memberAdmin(_account);
-            address governanceTreasury = LibGovernance.treasury();
+            address treasury = LibGovernance.treasury();
 
             for (uint256 i = 0; i < LibRouter.nativeTokensCount(); i++) {
                 address token = LibRouter.nativeTokenAt(i);
@@ -53,10 +52,10 @@ contract GovernanceV2Facet is IGovernanceV2 {
                     _account,
                     token
                 );
-                uint256 validatorClaimableAmount = (claimableFees * validatorRewardsPercentage) / precision;
+                uint256 treasuryClaimableAmount = (claimableFees * fcs.treasuryPercentage) / fcs.precision;
                 
-                IERC20(token).safeTransfer(accountAdmin, validatorClaimableAmount);
-                IERC20(token).safeTransfer(governanceTreasury, claimableFees - validatorClaimableAmount);
+                IERC20(token).safeTransfer(accountAdmin, claimableFees - treasuryClaimableAmount);
+                IERC20(token).safeTransfer(treasury, treasuryClaimableAmount);
             }
 
             for (uint256 i = 0; i < LibPayment.tokensCount(); i++) {
@@ -65,10 +64,10 @@ contract GovernanceV2Facet is IGovernanceV2 {
                     _account,
                     token
                 );
-                uint256 validatorClaimableAmount = (claimableFees * validatorRewardsPercentage) / precision;
+                uint256 treasuryClaimableAmount = (claimableFees * fcs.treasuryPercentage) / fcs.precision;
 
-                IERC20(token).safeTransfer(accountAdmin, validatorClaimableAmount);
-                IERC20(token).safeTransfer(governanceTreasury, claimableFees - validatorClaimableAmount);
+                IERC20(token).safeTransfer(accountAdmin, claimableFees - treasuryClaimableAmount);
+                IERC20(token).safeTransfer(treasury, treasuryClaimableAmount);
             }
 
             _accountAdmin = address(0);

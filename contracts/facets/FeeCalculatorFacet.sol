@@ -12,22 +12,16 @@ contract FeeCalculatorFacet is IFeeCalculator {
 
     /// @notice Construct a new FeeCalculator contract
     /// @param _precision The precision for every fee calculator
-    /// @param _validatorRewardsPercentage The percentage for the validator rewards
-    function initFeeCalculator(uint256 _precision, uint256 _validatorRewardsPercentage) external override {
+    function initFeeCalculator(uint256 _precision) external override {
         LibFeeCalculator.Storage storage fcs = LibFeeCalculator
             .feeCalculatorStorage();
         require(!fcs.initialized, "FeeCalculatorFacet: already initialized");
         require(
             _precision >= 10,
             "FeeCalculatorFacet: precision must not be single-digit"
-        );
-        require(
-            _validatorRewardsPercentage < _precision,
-            "FeeCalculatorFacet: percentages must be less than precision"
-        );        
+        );      
         fcs.initialized = true;
         fcs.precision = _precision;
-        fcs.validatorRewardsPercentage = _validatorRewardsPercentage;
     }
 
     /// @return The current precision for service fee calculations of tokens
@@ -47,20 +41,20 @@ contract FeeCalculatorFacet is IFeeCalculator {
         emit ServiceFeeSet(msg.sender, _token, _serviceFeePercentage);
     }
 
-    /// @notice updates the validator rewards percentage
-    /// @param _validatorRewardsPercentage The validator rewards percentage
-    function updateValidatorRewardsPercentage(uint256 _validatorRewardsPercentage)
+    /// @notice updates the treasury rewards percentage
+    /// @param _treasuryPercentage The treasury rewards percentage
+    function setTreasuryPercentage(uint256 _treasuryPercentage)
         external
         override
     {
         LibDiamond.enforceIsContractOwner();
-        LibFeeCalculator.updateValidatorRewardsPercentage(_validatorRewardsPercentage);
-        emit UpdateValidatorRewardsPercentage(msg.sender, _validatorRewardsPercentage);
+        LibFeeCalculator.setTreasuryPercentage(_treasuryPercentage);
+        emit TreasuryPercentageSet(msg.sender, _treasuryPercentage);
     }
 
-    /// @notice The current validator rewards percentage
-    function validatorRewardsPercentage() external view override returns (uint256) {
-        return LibFeeCalculator.validatorRewardsPercentage();
+    /// @notice The current treasury rewards percentage
+    function treasuryPercentage() external view override returns (uint256) {
+        return LibFeeCalculator.treasuryPercentage();
     }
 
     /// @param _account The address of a validator
@@ -111,7 +105,8 @@ contract FeeCalculatorFacet is IFeeCalculator {
     }
 
     /// @notice Sends out the reward accumulated by the member for the specified token
-    /// to the member admin and treasury
+    /// to the member admin and a predefined percentage of the rewards is allocated 
+    /// to the treasury.
     function claim(address _token, address _member)
         external
         override
@@ -127,17 +122,18 @@ contract FeeCalculatorFacet is IFeeCalculator {
         uint256 claimableAmount = LibFeeCalculator.claimReward(_member, _token);
         address memberAdmin = LibGovernance.memberAdmin(_member);
         address treasury = LibGovernance.treasury();
-        uint256 validatorClaimableAmount = (claimableAmount * fcs.validatorRewardsPercentage) / fcs.precision;
+        uint256 treasuryClaimableAmount = (claimableAmount * fcs.treasuryPercentage) / fcs.precision;
 
-        IERC20(_token).safeTransfer(memberAdmin, validatorClaimableAmount);
-        IERC20(_token).safeTransfer(treasury, claimableAmount - validatorClaimableAmount);
+        IERC20(_token).safeTransfer(memberAdmin, claimableAmount - treasuryClaimableAmount);
+        IERC20(_token).safeTransfer(treasury, treasuryClaimableAmount);
 
         emit Claim(_member, memberAdmin, _token, claimableAmount);
     }
 
 
     /// @notice Sends out the reward accumulated by the members for the specified tokens
-    /// to the members admin and treasury
+    /// to the members admin and a predefined percentage of the rewards is allocated 
+    /// to the treasury.
     function claimMultiple(address[] calldata _tokens, address[] calldata _members)
         external
         override
