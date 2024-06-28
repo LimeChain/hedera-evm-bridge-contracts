@@ -19,7 +19,7 @@ contract FeeCalculatorFacet is IFeeCalculator {
         require(
             _precision >= 10,
             "FeeCalculatorFacet: precision must not be single-digit"
-        );      
+        );
         fcs.initialized = true;
         fcs.precision = _precision;
     }
