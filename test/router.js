@@ -188,7 +188,7 @@ describe('Router', async () => {
       const testFacet = await governanceFacetFactory.deploy();
       await testFacet.deployed();
 
-      await expect(testFacet.initGovernance([], [],treasury.address, GOVERNANCE_PERCENTAGE, GOVERNANCE_PRECISION)).to.be.revertedWith(expectedRevertMessage);
+      await expect(testFacet.initGovernance([], [], treasury.address, GOVERNANCE_PERCENTAGE, GOVERNANCE_PRECISION)).to.be.revertedWith(expectedRevertMessage);
     });
 
     it('should not initialize RouterFacet twice', async () => {
@@ -198,7 +198,7 @@ describe('Router', async () => {
 
     it('should not initialize GovernanceFacet twice', async () => {
       const expectedRevertMessage = 'GovernanceFacet: already initialized';
-      await expect(router.initGovernance([alice.address], [aliceAdmin.address],treasury.address, GOVERNANCE_PERCENTAGE, GOVERNANCE_PRECISION)).to.be.revertedWith(expectedRevertMessage);
+      await expect(router.initGovernance([alice.address], [aliceAdmin.address], treasury.address, GOVERNANCE_PERCENTAGE, GOVERNANCE_PRECISION)).to.be.revertedWith(expectedRevertMessage);
     });
 
     it('should not initialize GovernanceFacet when members length are different', async () => {
@@ -206,9 +206,9 @@ describe('Router', async () => {
       const governanceFacetFactory = await ethers.getContractFactory('GovernanceFacet');
       const testFacet = await governanceFacetFactory.deploy();
       await testFacet.deployed();
-      await expect(testFacet.initGovernance([alice.address], [],treasury.address, GOVERNANCE_PERCENTAGE, GOVERNANCE_PRECISION)).to.be.revertedWith(expectedRevertMessage);
-      await expect(testFacet.initGovernance([alice.address], [aliceAdmin.address, bobAdmin.address],treasury.address, GOVERNANCE_PERCENTAGE, GOVERNANCE_PRECISION)).to.be.revertedWith(expectedRevertMessage);
-      await expect(testFacet.initGovernance([alice.address, bob.address], [aliceAdmin.address],treasury.address, GOVERNANCE_PERCENTAGE, GOVERNANCE_PRECISION)).to.be.revertedWith(expectedRevertMessage);
+      await expect(testFacet.initGovernance([alice.address], [], treasury.address, GOVERNANCE_PERCENTAGE, GOVERNANCE_PRECISION)).to.be.revertedWith(expectedRevertMessage);
+      await expect(testFacet.initGovernance([alice.address], [aliceAdmin.address, bobAdmin.address], treasury.address, GOVERNANCE_PERCENTAGE, GOVERNANCE_PRECISION)).to.be.revertedWith(expectedRevertMessage);
+      await expect(testFacet.initGovernance([alice.address, bob.address], [aliceAdmin.address], treasury.address, GOVERNANCE_PERCENTAGE, GOVERNANCE_PRECISION)).to.be.revertedWith(expectedRevertMessage);
     });
 
     it('should revert governance init if precision is 0', async () => {
@@ -216,7 +216,7 @@ describe('Router', async () => {
       const governanceFacetFactory = await ethers.getContractFactory('GovernanceFacet');
       const testFacet = await governanceFacetFactory.deploy();
       await testFacet.deployed();
-      await expect(testFacet.initGovernance([alice.address], [aliceAdmin.address],treasury.address, GOVERNANCE_PERCENTAGE, 0)).to.be.revertedWith(expectedRevertMessage);
+      await expect(testFacet.initGovernance([alice.address], [aliceAdmin.address], treasury.address, GOVERNANCE_PERCENTAGE, 0)).to.be.revertedWith(expectedRevertMessage);
     });
 
     it('should revert governance init if percentage is more than precision', async () => {
@@ -232,7 +232,7 @@ describe('Router', async () => {
       const governanceFacetFactory = await ethers.getContractFactory('GovernanceFacet');
       const testFacet = await governanceFacetFactory.deploy();
       await testFacet.deployed();
-      await expect(testFacet.initGovernance([alice.address], [aliceAdmin.address],treasury.address, GOVERNANCE_PRECISION, GOVERNANCE_PRECISION)).to.be.revertedWith(expectedRevertMessage);
+      await expect(testFacet.initGovernance([alice.address], [aliceAdmin.address], treasury.address, GOVERNANCE_PRECISION, GOVERNANCE_PRECISION)).to.be.revertedWith(expectedRevertMessage);
     });
 
     it('should revert governance init with duplicate addresses as members', async () => {
