@@ -22,6 +22,8 @@ library LibGovernance {
         address admin;
         // used to restrict certain functionality in case of an emergency stop
         bool paused;
+        // Treasury of the contract
+        address treasury;
     }
 
     function governanceStorage() internal pure returns (Storage storage gs) {
@@ -34,6 +36,11 @@ library LibGovernance {
     /// @return Returns the admin
     function admin() internal view returns (address) {
         return governanceStorage().admin;
+    }
+
+    /// @return Returns the treasury
+    function treasury() internal view returns (address) {
+        return governanceStorage().treasury;
     }
 
     /// @return Returns true if the contract is paused, and false otherwise
@@ -64,6 +71,11 @@ library LibGovernance {
     function updateAdmin(address _newAdmin) internal {
         Storage storage ds = governanceStorage();
         ds.admin = _newAdmin;
+    }
+
+    function updateTreasury(address _newTreasury) internal {
+        Storage storage ds = governanceStorage();
+        ds.treasury = _newTreasury;
     }
 
     function pause() internal {

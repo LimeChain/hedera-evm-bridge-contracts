@@ -103,7 +103,8 @@ npx hardhat deploy-router \
     --governance-precision <governance precision> \
     --fee-calculator-precision <fee calculator precision> \
     --members <list of members, split by `,`> \
-    --members-admins <list of members admins, split by `,`>
+    --members-admins <list of members admins, split by `,`> \
+    --treasury <treasury address>
 ```
 
 #### Wrapped ERC-20 token deployment through Router
@@ -290,6 +291,36 @@ npx hardhat transfer-ownership \
     --network <network name> \
     --contract <address of the contract> \
     --new-owner <address of the new owner>
+```
+
+#### Set treasury address
+Sets the address of the treasury account
+```bash
+npx hardhat set-treasury \
+    --network <network name> \
+    --router-address <address of the router> \
+    --treasury-address <address of the treasury> \
+    --treasury-percentage <the reward percentage of the treasury>
+```
+
+#### Claim rewards
+Claims the rewards acumulated per token from a specific member
+```bash
+npx hardhat claim-rewards \
+    --network <network name> \
+    --router-address <address of the router> \
+    --token-address <address of the token of the claimed rewards> \
+    --member-address <address of the member> 
+```
+
+#### Generate the update facets transaction bytes
+Generates the transaction for updating the facets using the diamond cut
+```bash
+npx hardhat generate-update-facets-transaction\
+    --network <network name> \
+    --facet-addresses-per-name <coma separated pairs of facet name and facet address, each pair is in format  "name-address"> \
+    --action-per-signature <colon separated triplets of facet name, function signature and action, each triplet is in format "name-funcSign-action"> \
+    --router-address <address of the router>
 ```
 
 ### Tests

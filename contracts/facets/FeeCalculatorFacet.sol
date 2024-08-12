@@ -41,6 +41,22 @@ contract FeeCalculatorFacet is IFeeCalculator {
         emit ServiceFeeSet(msg.sender, _token, _serviceFeePercentage);
     }
 
+    /// @notice Updates the treasury rewards percentage
+    /// @param _treasuryPercentage The treasury rewards percentage
+    function setTreasuryPercentage(uint256 _treasuryPercentage)
+        external
+        override
+    {
+        LibDiamond.enforceIsContractOwner();
+        LibFeeCalculator.setTreasuryPercentage(_treasuryPercentage);
+        emit TreasuryPercentageSet(msg.sender, _treasuryPercentage);
+    }
+
+    /// @notice The current treasury rewards percentage
+    function treasuryPercentage() external view override returns (uint256) {
+        return LibFeeCalculator.treasuryPercentage();
+    }
+
     /// @param _account The address of a validator
     /// @param _token The token address
     /// @return The total amount of claimed tokens by the provided validator address
@@ -89,17 +105,55 @@ contract FeeCalculatorFacet is IFeeCalculator {
     }
 
     /// @notice Sends out the reward accumulated by the member for the specified token
-    /// to the member admin
+    /// to the member admin and a predefined percentage of the rewards is allocated 
+    /// to the treasury.
     function claim(address _token, address _member)
         external
         override
-        onlyMember(_member)
     {
+        _claim(_token,_member);
+    }
+
+    function _claim(address _token, address _member) internal onlyMember(_member) {
         LibGovernance.enforceNotPaused();
+        LibFeeCalculator.Storage storage fcs = LibFeeCalculator
+            .feeCalculatorStorage();
+
         uint256 claimableAmount = LibFeeCalculator.claimReward(_member, _token);
         address memberAdmin = LibGovernance.memberAdmin(_member);
-        IERC20(_token).safeTransfer(memberAdmin, claimableAmount);
+        address treasury = LibGovernance.treasury();
+        uint256 treasuryClaimableAmount = (claimableAmount * fcs.treasuryPercentage) / fcs.precision;
+
+        IERC20(_token).safeTransfer(memberAdmin, claimableAmount - treasuryClaimableAmount);
+        IERC20(_token).safeTransfer(treasury, treasuryClaimableAmount);
+
         emit Claim(_member, memberAdmin, _token, claimableAmount);
+    }
+
+
+    /// @notice Sends out the reward accumulated by the members for the specified tokens
+    /// to the members admin and a predefined percentage of the rewards is allocated 
+    /// to the treasury.
+    function claimMultiple(address[] calldata _tokens, address[] calldata _members)
+        external
+        override
+    {
+        LibGovernance.enforceNotPaused();
+        uint256 tokensLength = _tokens.length;
+        uint256 membersLength = _members.length;
+
+        for(uint256 x = 0; x < membersLength;){
+            for (uint256 i = 0; i < tokensLength; ) {
+                _claim(_tokens[i], _members[x]);
+                unchecked {
+                    ++i;
+                }
+            }
+
+            unchecked {
+                ++x;
+             }
+        }
     }
 
     /// @notice Accepts only `msg.sender` part of the members

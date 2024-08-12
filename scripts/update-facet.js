@@ -1,15 +1,17 @@
 const hardhat = require("hardhat");
 const ethers = hardhat.ethers;
-const { getSelectors } = require("../util");
+const { getSelector } = require("../util");
 
-async function updateFacet(facetName, facetAddress, routerAddress) {
+async function updateFacet(facetName, facetAddress, routerAddress, action, functionSignatures) {
   const facetContract = await ethers.getContractAt(facetName, facetAddress);
+  const signatures = functionSignatures.split(',');
+  const selectors = signatures.map(signature => getSelector(signature)).filter(value => value !== undefined);
 
   const diamondAddCutReplace = [
     {
       facetAddress: facetContract.address,
-      action: 1, // Replace
-      functionSelectors: getSelectors(facetContract),
+      action, // Action
+      functionSelectors: selectors,
     },
   ];
 

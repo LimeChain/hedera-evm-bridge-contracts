@@ -5,7 +5,7 @@ const { getSelectors } = require('../util');
 
 const { performUpgradeErc721Support } = require('./upgrade-erc721-support');
 
-async function deployRouter(owner, governancePercentage, governancePrecision, feeCalculatorPrecision, members, membersAdmins) {
+async function deployRouter(owner, treasury, governancePercentage, governancePrecision, feeCalculatorPrecision, members, membersAdmins) {
   await hardhat.run('compile');
 
   const routerFacetFactory = await ethers.getContractFactory('RouterFacet');
@@ -70,7 +70,7 @@ async function deployRouter(owner, governancePercentage, governancePrecision, fe
               membersAdmins [${membersAdmins}],
               percentage [${governancePercentage}] and
               precision [${governancePrecision}], please wait...`);
-  const initGovernanceTx = await (await router.initGovernance(members, membersAdmins, governancePercentage, governancePrecision));
+  const initGovernanceTx = await (await router.initGovernance(members, membersAdmins, treasury, governancePercentage, governancePrecision));
   await initGovernanceTx.wait();
 
   console.log(`Initializing Router, please wait...`);

@@ -1,4 +1,4 @@
-const { task } = require('hardhat/config');
+const { task, types } = require('hardhat/config');
 
 const ALCHEMY_PROJECT_ID = process.env.ALCHEMY_PROJECT_ID || '';
 const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || 'f39fd6e51aad88f6f4ce6ab8827279cfffb92266';
@@ -11,6 +11,39 @@ require('@nomiclabs/hardhat-waffle');
 require('solidity-coverage');
 require('hardhat-gas-reporter');
 
+task('generate-update-facets-transaction', 'Uses the diamond cut to update facets')
+    .addParam('facetAddressesPerName', 'The names and addresses of the facets to update, in the format <facetName-facetAddress>, coma separated')
+    .addParam('actionPerSignature', 'The function signatures with it\'s diamond cut action, in the format: <facetName-funcSign-action>, colon separated')
+    .addParam('routerAddress', 'The address of the router')
+    .setAction(async (taskArgs)=>{
+      const updateFacets = require('./scripts/generate-update-facets-transaction');
+      const addressesAndNames = taskArgs.facetAddressesPerName.split(',');  
+      const nameFuncSignActions = taskArgs.actionPerSignature.split(':');
+    
+      const addressPerNameMap = {};
+      const cutActionAndFuncSignaturePerFacetNameMap = {};
+
+      for(const addressAndName of addressesAndNames){
+        const addressAndNameArr = addressAndName.split('-');
+        const facetName = addressAndNameArr[0];
+        const facetAddress = addressAndNameArr[1];
+        addressPerNameMap[facetName] = facetAddress;
+      }
+
+      for(const nameActionSignature of nameFuncSignActions){
+        const nameActionSignatureArr = nameActionSignature.split('-');
+        const facetName= nameActionSignatureArr[0];
+        const funcSignatures = nameActionSignatureArr[1];
+        const action = Number(nameActionSignatureArr[2]);
+
+        if(!cutActionAndFuncSignaturePerFacetNameMap[facetName]){
+            cutActionAndFuncSignaturePerFacetNameMap[facetName] = [];
+        }
+        cutActionAndFuncSignaturePerFacetNameMap[facetName].push([action, funcSignatures]);
+      } 
+      await updateFacets(addressPerNameMap, taskArgs.routerAddress, cutActionAndFuncSignaturePerFacetNameMap);
+    });
+
 task('deploy-router', 'Deploys Router contract will all the necessary facets')
     .addParam('owner', 'The owner of the to-be deployed router')
     .addParam('governancePercentage', 'The percentage of how many of the total members are required to sign given message', 50, types.int)
@@ -18,12 +51,14 @@ task('deploy-router', 'Deploys Router contract will all the necessary facets')
     .addParam('feeCalculatorPrecision', 'The precision of fee calculations for native tokens', 100_000, types.int)
     .addParam('members', 'The addresses of the members')
     .addParam('membersAdmins', 'The addresses of the members\' admins')
+    .addParam('treasury', 'The address of the treasury')
     .setAction(async (taskArgs) => {
         const deployRouter = require('./scripts/deploy-router');
         const membersArray = taskArgs.members.split(',');
         const membersAdminsArray = taskArgs.membersAdmins.split(',');
         await deployRouter(
             taskArgs.owner,
+            taskArgs.treasury,
             taskArgs.governancePercentage,
             taskArgs.governancePrecision,
             taskArgs.feeCalculatorPrecision,
@@ -275,10 +310,29 @@ task('updateFacet', 'Deploys ERC721PortalFacet')
     .addParam("facetName", "The addres of the router")
     .addParam("facetAddress", "The addres of the router")
     .addParam("routerAddress", "The addres of the router")
+    .addParam("action", "The diamond cut action(Add=0, Replace=1, Remove=2)", 0, types.int)
+    .addParam("functionSignatures", "The function signatures divided by coma and space")
     .setAction(async (taskArgs) => {
-        console.log(taskArgs);
         const updateFacet = require('./scripts/update-facet');
-        await updateFacet(taskArgs.facetName,taskArgs.facetAddress,taskArgs.routerAddress);
+        await updateFacet(taskArgs.facetName, taskArgs.facetAddress, taskArgs.routerAddress, taskArgs.action, taskArgs.functionSignatures);
+    });
+
+    task('setTreasury', 'Sets treasury address')
+    .addParam("routerAddress", "The address of the router")
+    .addParam("treasuryAddress", "The address of the treasury")
+    .addParam("treasuryPercentage", "The treasury reward percentage", 60_000, types.int)
+    .setAction(async (taskArgs) => {
+        const setTreasury = require('./scripts/set-treasury');
+        await setTreasury(taskArgs.routerAddress, taskArgs.treasuryAddress, taskArgs.treasuryPercentage);
+    });
+
+task('claimRewards', 'Claims rewards to member')
+    .addParam("routerAddress", "The address of the router")
+    .addParam("tokenAddress", "The address of the token to claim rewards for")
+    .addParam("memberAddress", "The address of the member to claim rewards to")
+    .setAction(async (taskArgs) => {
+        const claimRewards = require('./scripts/claim-rewards');
+        await claimRewards(taskArgs.routerAddress, taskArgs.tokenAddress, taskArgs.memberAddress);
     });
 
 

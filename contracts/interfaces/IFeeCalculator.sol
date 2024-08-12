@@ -12,6 +12,9 @@ interface IFeeCalculator {
         uint256 amount
     );
 
+    /// @notice An event emitted once the treasury rewards percentage is modified
+    event TreasuryPercentageSet(address account, uint256 _treasuryPercentage);
+
     /// @notice Construct a new FeeCalculator contract
     /// @param _precision The precision for every fee calculator
     function initFeeCalculator(uint256 _precision) external;
@@ -50,6 +53,19 @@ interface IFeeCalculator {
         returns (uint256);
 
     /// @notice Sends out the reward accumulated by the member for the specified token
-    /// to the member admin
+    /// to the member admin and a predefined percentage of the rewards is allocated 
+    /// to the treasury.
     function claim(address _token, address _member) external;
+
+    /// @notice Sends out the reward accumulated by the members for the specified tokens
+    /// to the members admin and a predefined percentage of the rewards is allocated 
+    /// to the treasury.
+    function claimMultiple(address[] calldata _tokens, address[] calldata _members) external;
+
+    /// @notice Updates the treasury rewards percentage
+    ///  @param _treasuryPercentage The treasury rewards percentage
+    function setTreasuryPercentage(uint256 _treasuryPercentage) external;
+
+    /// @notice The current treasury rewards percentage
+    function treasuryPercentage() external view returns (uint256);
 }

@@ -26,6 +26,8 @@ library LibFeeCalculator {
         uint256 precision;
         // A mapping consisting of all token fee calculators
         mapping(address => FeeCalculator) nativeTokenFeeCalculators;
+        // Percentage for the treasury rewards
+        uint256 treasuryPercentage;
     }
 
     function feeCalculatorStorage() internal pure returns (Storage storage ds) {
@@ -103,6 +105,26 @@ library LibFeeCalculator {
 
         FeeCalculator storage ntfc = fcs.nativeTokenFeeCalculators[_token];
         ntfc.serviceFeePercentage = _serviceFeePercentage;
+    }
+
+    /// @notice Updates the treasury rewards percentage
+    /// @param _treasuryPercentage The treasury rewards percentage
+    function setTreasuryPercentage(uint256 _treasuryPercentage)
+        internal
+    {
+        LibFeeCalculator.Storage storage fcs = feeCalculatorStorage();
+        require(
+            _treasuryPercentage < fcs.precision,
+            "LibFeeCalculator: treasury rewards percentage percentage exceeds or equal to precision"
+        );
+
+        fcs.treasuryPercentage = _treasuryPercentage;
+    }
+
+    /// @notice The current treasury rewards percentage
+    function treasuryPercentage() internal view returns (uint256) {
+        LibFeeCalculator.Storage storage fcs = feeCalculatorStorage();
+        return fcs.treasuryPercentage;
     }
 
     /// @notice Accrues fees to a fee calculator
